@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "synthetictext"
+dynamic = ["version"]
+description = "LLM-powered synthetic text data generation for text classification tasks, with multi-strategy generation, multilingual support, and quality filtering."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "Srikar Kashyap Pulipaka", email = "srikar.kashyap@gmail.com" },
+]
+keywords = [
+    "synthetic-data",
+    "text-classification",
+    "data-augmentation",
+    "nlp",
+    "llm",
+    "multilingual",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+google-translate = ["google-cloud-translate>=3.11.0"]
+embeddings = ["sentence-transformers>=2.2.0", "scikit-learn>=1.3.0"]
+yaml = ["pyyaml>=6.0"]
+all = [
+    "openai>=1.0.0",
+    "google-cloud-translate>=3.11.0",
+    "sentence-transformers>=2.2.0",
+    "scikit-learn>=1.3.0",
+    "pyyaml>=6.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+synthetictext = "synthetictext.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/srikarkashyap/synthetictext"
+Repository = "https://github.com/srikarkashyap/synthetictext"
+Documentation = "https://github.com/srikarkashyap/synthetictext/tree/main/tutorials"
+Issues = "https://github.com/srikarkashyap/synthetictext/issues"
+Changelog = "https://github.com/srikarkashyap/synthetictext/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "synthetictext/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["synthetictext"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
