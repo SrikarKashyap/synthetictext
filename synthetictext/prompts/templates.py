@@ -14,10 +14,19 @@ class PromptRenderer:
     strategy, that template is used instead of the library default.
     """
 
-    def __init__(self, task: TaskSpec) -> None:
+    def __init__(self, task: TaskSpec | None = None) -> None:
         self.task = task
 
     def _base_vars(self, language: str) -> Dict[str, Any]:
+        if self.task is None:
+            return {
+                "language": language,
+                "task_name": "RAG Q&A",
+                "task_description": "Generate grounded question-answer pairs.",
+                "text_domain": "source chunk",
+                "word_min": 0,
+                "word_max": 0,
+            }
         return {
             "language": language,
             "task_name": self.task.name,
@@ -28,6 +37,8 @@ class PromptRenderer:
         }
 
     def _label_vars(self, label_index: int) -> Dict[str, str]:
+        if self.task is None:
+            raise ValueError("PromptRenderer requires a TaskSpec for label-based prompts.")
         v: Dict[str, str] = {
             "label_name": self.task.label_name(label_index),
             "label_description": self.task.label_description(label_index),
@@ -39,7 +50,7 @@ class PromptRenderer:
         return v
 
     def _get_template(self, strategy: str) -> str:
-        custom = self.task.get_prompt(strategy)
+        custom = self.task.get_prompt(strategy) if self.task is not None else None
         if custom is not None:
             return custom
         if strategy not in DEFAULT_PROMPTS:
@@ -102,5 +113,19 @@ class PromptRenderer:
             **self._base_vars(language),
             **self._label_vars(label_index),
             "text": text,
+        }
+        return template.format(**variables)
+
+    def render_rag_qa(
+        self,
+        chunk: str,
+        num_samples: int,
+        language: str,
+    ) -> str:
+        template = self._get_template("rag_qa")
+        variables = {
+            **self._base_vars(language),
+            "chunk": chunk,
+            "num_samples": num_samples,
         }
         return template.format(**variables)

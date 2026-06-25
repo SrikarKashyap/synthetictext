@@ -13,6 +13,8 @@ Each template uses ``str.format`` placeholders.  Available variables:
 * ``{text_domain}``        -- e.g. "social media post"
 * ``{word_min}`` / ``{word_max}`` -- word-count range
 * ``{text}``               -- the source text (paraphrasing / contrastive)
+* ``{chunk}``              -- source chunk for RAG Q&A generation
+* ``{num_samples}``        -- number of Q&A pairs to generate
 """
 
 DIRECT_GENERATION_PROMPT = """\
@@ -68,8 +70,8 @@ Both versions should:
 - Be written entirely in {language}
 
 Output format (use exactly this format):
-{label_name}: [text in {language}]
-{other_label_name}: [text in {language}]
+Respond with ONLY a JSON object (no markdown formatting):
+{{"{label_name}": "[text in {language}]", "{other_label_name}": "[text in {language}]"}}
 """
 
 LLM_JUDGE_PROMPT = """\
@@ -92,9 +94,29 @@ Respond with ONLY a JSON object (no markdown formatting):
 "clear": true/false, "grammatical": true/false}}
 """
 
+RAG_QA_PROMPT = """\
+You are generating evaluation data for a retrieval-augmented generation (RAG) system.
+
+Create {num_samples} question-answer pairs in {language} that are answerable ONLY from the source chunk below.
+
+Requirements:
+- Questions must test specific facts, relationships, or details present in the chunk
+- Answers must be concise and fully grounded in the chunk
+- Do not use outside knowledge
+- Do not create questions that cannot be answered from the chunk
+- Do not quote large parts of the chunk unless necessary
+
+Source chunk:
+{chunk}
+
+Respond with ONLY a JSON object (no markdown formatting):
+{{"qa_pairs": [{{"question": "...", "answer": "..."}}]}}
+"""
+
 DEFAULT_PROMPTS = {
     "direct": DIRECT_GENERATION_PROMPT,
     "paraphrase": PARAPHRASE_PROMPT,
     "contrastive": CONTRASTIVE_PAIR_PROMPT,
     "judge": LLM_JUDGE_PROMPT,
+    "rag_qa": RAG_QA_PROMPT,
 }

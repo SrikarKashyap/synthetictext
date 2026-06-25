@@ -45,6 +45,10 @@ examples:
       --strategies direct paraphrase contrastive \\
       --weights 0.5 0.3 0.2 \\
       --output-dir ./synthetic_data
+
+  # Generate RAG Q&A pairs from a text chunk
+  synthetictext rag-qa --input chunk.txt --num-samples 5 --language English \\
+      --output qa.csv
 """,
     )
 
@@ -84,6 +88,15 @@ examples:
     filt.add_argument("--language", "-l", default="en")
     filt.add_argument("--no-embeddings", action="store_true")
 
+    # --- rag-qa subcommand ---
+    rag_qa = sub.add_parser("rag-qa", help="Generate RAG question-answer pairs")
+    rag_qa.add_argument("--input", "-i", required=True, help="Path to source chunk text file")
+    rag_qa.add_argument("--num-samples", "-n", type=int, default=5)
+    rag_qa.add_argument("--language", "-l", default="English")
+    rag_qa.add_argument("--model", "-m", default=None, help="LLM model name")
+    rag_qa.add_argument("--provider", default="openai", help="LLM provider (default: openai)")
+    rag_qa.add_argument("--output", "-o", default=None, help="Output CSV path")
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -94,6 +107,8 @@ examples:
         _run_generate(args)
     elif args.command == "filter":
         _run_filter(args)
+    elif args.command == "rag-qa":
+        _run_rag_qa(args)
 
 
 def _run_generate(args: argparse.Namespace) -> None:
@@ -173,6 +188,33 @@ def _run_filter(args: argparse.Namespace) -> None:
     output = args.output or str(Path(args.input).with_suffix("")) + "_filtered.csv"
     save_data(filtered, output)
     print(f"Filtered: {len(synthetic_df)} -> {len(filtered)} samples")
+
+
+def _run_rag_qa(args: argparse.Namespace) -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+    from synthetictext.qa import RAGQAGenerator
+    from synthetictext.utils import save_data
+
+    chunk_path = Path(args.input)
+    chunk = chunk_path.read_text(encoding="utf-8")
+    generator = RAGQAGenerator(
+        llm_provider=args.provider,
+        llm_model=args.model,
+    )
+    df = generator.generate(
+        chunk=chunk,
+        num_samples=args.num_samples,
+        language=args.language,
+    )
+
+    if args.output:
+        save_data(df, args.output)
+        print(f"Generated {len(df)} RAG Q&A samples at {args.output}")
+    else:
+        print(df.to_json(orient="records", indent=2))
 
 
 if __name__ == "__main__":

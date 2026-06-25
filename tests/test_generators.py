@@ -10,6 +10,32 @@ from synthetictext.task import LanguageConfig, TaskSpec
 from tests.conftest import MockLLMProvider
 
 
+class CapturingLLMProvider(MockLLMProvider):
+    def __init__(self, responses: list[str] | None = None) -> None:
+        super().__init__(responses)
+        self.response_formats = []
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        model=None,
+        temperature=0.9,
+        max_tokens=250,
+        system_prompt=None,
+        response_format=None,
+    ) -> str:
+        self.response_formats.append(response_format)
+        return super().generate(
+            prompt,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_prompt=system_prompt,
+            response_format=response_format,
+        )
+
+
 class TestDirectGenerator:
     def test_generates_samples(self, binary_task: TaskSpec) -> None:
         from synthetictext.generators.direct import DirectGenerator
@@ -76,6 +102,32 @@ class TestContrastiveGenerator:
 
         df = gen.generate(language="English", num_samples=6)
         assert len(df) > 0
+
+    def test_generates_pairs_from_json(self, binary_task: TaskSpec) -> None:
+        from synthetictext.generators.contrastive import ContrastiveGenerator
+
+        llm = MockLLMProvider([
+            '{"negative": "Bad product terrible.", "positive": "Great product amazing."}'
+        ])
+        renderer = PromptRenderer(binary_task)
+        gen = ContrastiveGenerator(binary_task, llm, renderer)
+
+        df = gen.generate(language="English", num_samples=2)
+
+        assert list(df["text"]) == ["Bad product terrible.", "Great product amazing."]
+
+    def test_requests_json_response_format(self, binary_task: TaskSpec) -> None:
+        from synthetictext.generators.contrastive import ContrastiveGenerator
+
+        llm = CapturingLLMProvider([
+            '{"negative": "Bad product terrible.", "positive": "Great product amazing."}'
+        ])
+        renderer = PromptRenderer(binary_task)
+        gen = ContrastiveGenerator(binary_task, llm, renderer)
+
+        gen.generate(language="English", num_samples=2)
+
+        assert llm.response_formats == [{"type": "json_object"}]
 
     def test_rejects_non_binary(self, multiclass_task: TaskSpec) -> None:
         from synthetictext.generators.contrastive import ContrastiveGenerator

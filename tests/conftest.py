@@ -23,6 +23,7 @@ class MockLLMProvider(BaseLLMProvider):
         temperature=0.9,
         max_tokens=250,
         system_prompt=None,
+        response_format=None,
     ) -> str:
         if self._responses:
             resp = self._responses[self._call_count % len(self._responses)]

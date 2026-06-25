@@ -35,8 +35,17 @@ class TestParseJsonResponse:
         text = 'Some text before {"x": 1} and after'
         assert parse_json_response(text) == {"x": 1}
 
+    def test_nested_json_in_markdown_fence(self) -> None:
+        text = '```json\n{"qa_pairs": [{"question": "Q?", "answer": "A."}]}\n```'
+        assert parse_json_response(text) == {
+            "qa_pairs": [{"question": "Q?", "answer": "A."}]
+        }
+
     def test_invalid_returns_empty(self) -> None:
         assert parse_json_response("not json at all") == {}
+
+    def test_top_level_array_returns_empty(self) -> None:
+        assert parse_json_response('["not", "an", "object"]') == {}
 
 
 class TestGenerateSampleId:

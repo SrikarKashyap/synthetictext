@@ -43,16 +43,21 @@ class OpenAIProvider(BaseLLMProvider):
         temperature: float = 0.9,
         max_tokens: int = 250,
         system_prompt: Optional[str] = None,
+        response_format: Optional[dict[str, str]] = None,
     ) -> str:
         messages: list[dict[str, str]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        response = self._client.chat.completions.create(
-            model=model or self.default_model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        kwargs = {
+            "model": model or self.default_model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if response_format is not None:
+            kwargs["response_format"] = response_format
+
+        response = self._client.chat.completions.create(**kwargs)
         return response.choices[0].message.content.strip()

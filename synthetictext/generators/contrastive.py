@@ -9,7 +9,7 @@ from tqdm import tqdm
 from synthetictext.prompts.templates import PromptRenderer
 from synthetictext.providers.base import BaseLLMProvider
 from synthetictext.task import TaskSpec
-from synthetictext.utils import clean_generated_text, logger
+from synthetictext.utils import clean_generated_text, logger, parse_json_response
 
 from .base import BaseGenerator
 
@@ -53,9 +53,17 @@ class ContrastiveGenerator(BaseGenerator):
                 prompt = self.renderer.render_contrastive(
                     labels[0], language, topic=topic
                 )
-                raw = self.llm.generate(
-                    prompt, temperature=self.TEMPERATURE
-                )
+                generation_kwargs = {
+                    "temperature": self.TEMPERATURE,
+                    "response_format": {"type": "json_object"},
+                }
+                try:
+                    raw = self.llm.generate(prompt, **generation_kwargs)
+                except TypeError as e:
+                    if "response_format" not in str(e):
+                        raise
+                    generation_kwargs.pop("response_format")
+                    raw = self.llm.generate(prompt, **generation_kwargs)
                 pair = self._parse_pair(raw)
                 if pair is None:
                     logger.warning(
@@ -96,10 +104,18 @@ class ContrastiveGenerator(BaseGenerator):
         """Parse LLM response into two contrastive samples.
 
         Supports formats:
+          - JSON object keyed by label names
           - Numbered: "1. ..." / "2. ..."
           - Labeled: "Label A: ..." / "Label B: ..."
           - Separator: text separated by "---" or "***"
         """
+        label_names = [self.task.label_name(i) for i in self.task.label_indices]
+        parsed = parse_json_response(raw)
+        if parsed:
+            values = [parsed.get(name) for name in label_names]
+            if all(isinstance(value, str) and value.strip() for value in values):
+                return values[0].strip(), values[1].strip()
+
         separator_match = re.split(r"\n\s*(?:---+|\*\*\*+)\s*\n", raw)
         if len(separator_match) == 2:
             return separator_match[0].strip(), separator_match[1].strip()
@@ -108,7 +124,6 @@ class ContrastiveGenerator(BaseGenerator):
         if len(numbered) >= 2:
             return numbered[0].strip(), numbered[1].strip()
 
-        label_names = [self.task.label_name(i) for i in self.task.label_indices]
         pattern = "|".join(re.escape(name) for name in label_names)
         labeled = re.split(rf"(?:^|\n)\s*(?:{pattern})\s*[:]\s*", raw)
         labeled = [s.strip() for s in labeled if s.strip()]
