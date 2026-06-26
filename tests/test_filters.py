@@ -4,6 +4,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from synthetictext.prompts.templates import PromptRenderer
+from synthetictext.providers.base import BaseLLMProvider
 from synthetictext.task import TaskSpec
 
 
@@ -72,6 +74,44 @@ class TestMarkerFilter:
         label_1_rows = result[result["label"] == 1]
         assert len(label_1_rows) == 1
         assert "terrible" in label_1_rows.iloc[0]["text"]
+
+
+class CapturingJudgeProvider(BaseLLMProvider):
+    def __init__(self) -> None:
+        self.response_formats = []
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        model=None,
+        temperature=0.9,
+        max_tokens=250,
+        system_prompt=None,
+        response_format=None,
+    ) -> str:
+        self.response_formats.append(response_format)
+        return (
+            '{"realistic": true, "label_correct": true, '
+            '"clear": true, "grammatical": true}'
+        )
+
+
+class TestLLMJudgeFilter:
+    def test_requests_json_response_format(self, binary_task: TaskSpec) -> None:
+        from synthetictext.filters.llm_judge import LLMJudgeFilter
+
+        provider = CapturingJudgeProvider()
+        judge = LLMJudgeFilter(
+            provider=provider,
+            renderer=PromptRenderer(binary_task),
+            language="English",
+        )
+
+        result = judge.filter(_make_df(["good text here"], [1]))
+
+        assert len(result) == 1
+        assert provider.response_formats == [{"type": "json_object"}]
 
 
 class TestFilterPipeline:

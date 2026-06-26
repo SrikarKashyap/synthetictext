@@ -83,22 +83,37 @@ def clean_generated_text(text: str) -> str:
 
 def parse_json_response(text: str) -> Dict[str, Any]:
     """Parse JSON from an LLM response, tolerating markdown fences."""
+    if not text:
+        return {}
+    decoder = json.JSONDecoder()
+
+    def _parse_first_object(candidate: str) -> Dict[str, Any]:
+        candidate = candidate.strip()
+        for idx, char in enumerate(candidate):
+            if char != "{":
+                continue
+            try:
+                obj, _ = decoder.raw_decode(candidate[idx:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict):
+                return obj
+        return {}
+
     try:
-        return json.loads(text)  # type: ignore[no-any-return]
+        obj = json.loads(text)
+        if isinstance(obj, dict):
+            return obj  # type: ignore[no-any-return]
     except json.JSONDecodeError:
         pass
-    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    m = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
     if m:
-        try:
-            return json.loads(m.group(1))  # type: ignore[no-any-return]
-        except json.JSONDecodeError:
-            pass
-    m = re.search(r"\{[^{}]*\}", text)
-    if m:
-        try:
-            return json.loads(m.group(0))  # type: ignore[no-any-return]
-        except json.JSONDecodeError:
-            pass
+        parsed = _parse_first_object(m.group(1))
+        if parsed:
+            return parsed
+    parsed = _parse_first_object(text)
+    if parsed:
+        return parsed
     logger.warning("Failed to parse JSON from: %s...", text[:100])
     return {}
 

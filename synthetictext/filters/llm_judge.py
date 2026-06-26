@@ -50,9 +50,19 @@ class LLMJudgeFilter(BaseFilter):
         """Return True if the sample passes LLM judgment."""
         try:
             prompt = self._renderer.render_judge(text, label_index, self._language)
-            response = self._provider.generate(
-                prompt, model=self._model, temperature=self._temperature, max_tokens=250
-            )
+            generation_kwargs = {
+                "model": self._model,
+                "temperature": self._temperature,
+                "max_tokens": 250,
+                "response_format": {"type": "json_object"},
+            }
+            try:
+                response = self._provider.generate(prompt, **generation_kwargs)
+            except TypeError as e:
+                if "response_format" not in str(e):
+                    raise
+                generation_kwargs.pop("response_format")
+                response = self._provider.generate(prompt, **generation_kwargs)
             result = parse_json_response(response)
             passing = sum(
                 1 for criterion in self.CRITERIA if result.get(criterion) is True

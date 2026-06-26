@@ -1,6 +1,6 @@
 # synthetictext
 
-LLM-powered synthetic text data generation for text classification tasks.
+LLM-powered synthetic text data generation for text classification and RAG evaluation tasks.
 
 `synthetictext` generates high-quality synthetic training data for any text classification task across multiple languages. It provides five generation strategies, a multi-stage quality filtering pipeline, and a simple Python API.
 
@@ -11,6 +11,7 @@ LLM-powered synthetic text data generation for text classification tasks.
 - **Multi-stage quality filtering**: Deduplication, label leakage detection, embedding-based dedup, LLM-as-judge, and keyword marker checks
 - **Multilingual**: Generate data in any language supported by your LLM provider, with optional cross-lingual transfer for low-resource languages
 - **Provider-agnostic**: Built-in support for OpenAI; extensible via `BaseLLMProvider` and `BaseTranslationProvider` interfaces
+- **RAG Q&A generation**: Create grounded question-answer pairs from a source chunk for RAG evaluation
 - **CLI and Python API**: Use from scripts or the command line
 
 ## Installation
@@ -110,6 +111,31 @@ df = generator.generate(
 
 print(df.head())
 # Columns: id, text, label, source, generated_at, language
+```
+
+## RAG Q&A Generation
+
+Generate grounded question-answer pairs from a source text chunk for future RAG evaluation datasets:
+
+```python
+from synthetictext import RAGQAGenerator
+
+chunk = """
+Synthetictext can generate classification data and RAG Q&A examples.
+The RAG Q&A feature creates questions answerable only from the source chunk.
+"""
+
+qa_generator = RAGQAGenerator(llm_provider="openai", llm_model="gpt-4o-mini")
+qa_df = qa_generator.generate(chunk=chunk, num_samples=3, language="English")
+
+print(qa_df.head())
+# Columns: id, question, answer, source, metadata
+```
+
+From the CLI:
+
+```bash
+synthetictext rag-qa --input chunk.txt --num-samples 5 --language English --output qa.csv
 ```
 
 ## Generation Strategies
@@ -215,6 +241,7 @@ Step-by-step Jupyter notebooks in [`tutorials/`](tutorials/):
 1. **[Quick Start](tutorials/01_quickstart.ipynb)** -- defining tasks, generating data, combining strategies
 2. **[Quality Filtering](tutorials/02_quality_filtering.ipynb)** -- using built-in filters, building custom filter pipelines
 3. **[Multilingual Generation](tutorials/03_multilingual_generation.ipynb)** -- `LanguageConfig`, backtranslation, pivot translation, tier-based strategies
+4. **[RAG Q&A Generation](tutorials/04_rag_qa_generation.ipynb)** -- generating grounded question-answer pairs from source chunks
 
 ## Examples
 

@@ -17,6 +17,7 @@ class BaseLLMProvider(ABC):
         temperature: float = 0.9,
         max_tokens: int = 250,
         system_prompt: Optional[str] = None,
+        response_format: Optional[dict[str, str]] = None,
     ) -> str:
         """Generate text from a prompt.
 
