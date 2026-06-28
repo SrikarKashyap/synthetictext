@@ -15,6 +15,9 @@ Each template uses ``str.format`` placeholders.  Available variables:
 * ``{text}``               -- the source text (paraphrasing / contrastive)
 * ``{chunk}``              -- source chunk for RAG Q&A generation
 * ``{num_samples}``        -- number of Q&A pairs to generate
+* ``{source_topic}``       -- original topic for templated generation
+* ``{target_topic}``       -- new topic for templated generation
+* ``{style}``              -- style description for templated generation
 """
 
 DIRECT_GENERATION_PROMPT = """\
@@ -113,10 +116,34 @@ Respond with ONLY a JSON object (no markdown formatting):
 {{"qa_pairs": [{{"question": "...", "answer": "..."}}]}}
 """
 
+TEMPLATED_GENERATION_PROMPT = """\
+You are generating new text in {language} by transferring the style of a source text to a different topic.
+
+Create {num_samples} sample(s) about the target topic while preserving the source text's style.
+
+Source topic: {source_topic}
+Target topic: {target_topic}
+Style to preserve: {style}
+
+Source text:
+{text}
+
+Requirements:
+- Preserve the source text's tone, structure, perspective, rhetorical pattern, and approximate length
+- Write about the target topic, not the source topic
+- Do not copy facts, claims, entities, or examples that only apply to the source topic
+- Keep the output natural in {language}
+- Do not include explanations, labels, or meta-commentary
+
+Respond with ONLY a JSON object (no markdown formatting):
+{{"samples": [{{"text": "..."}}]}}
+"""
+
 DEFAULT_PROMPTS = {
     "direct": DIRECT_GENERATION_PROMPT,
     "paraphrase": PARAPHRASE_PROMPT,
     "contrastive": CONTRASTIVE_PAIR_PROMPT,
     "judge": LLM_JUDGE_PROMPT,
     "rag_qa": RAG_QA_PROMPT,
+    "templated_generation": TEMPLATED_GENERATION_PROMPT,
 }

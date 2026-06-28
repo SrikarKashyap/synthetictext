@@ -1,6 +1,6 @@
 # synthetictext
 
-LLM-powered synthetic text data generation for text classification and RAG evaluation tasks.
+LLM-powered synthetic text data generation for text classification, style transfer, and RAG evaluation tasks.
 
 `synthetictext` generates high-quality synthetic training data for any text classification task across multiple languages. It provides five generation strategies, a multi-stage quality filtering pipeline, and a simple Python API.
 
@@ -12,6 +12,7 @@ LLM-powered synthetic text data generation for text classification and RAG evalu
 - **Multilingual**: Generate data in any language supported by your LLM provider, with optional cross-lingual transfer for low-resource languages
 - **Provider-agnostic**: Built-in support for OpenAI; extensible via `BaseLLMProvider` and `BaseTranslationProvider` interfaces
 - **RAG Q&A generation**: Create grounded question-answer pairs from a source chunk for RAG evaluation
+- **Templated generation**: Transfer a source text's style to a caller-provided target topic, especially useful for pretraining data and style transfer tasks.
 - **CLI and Python API**: Use from scripts or the command line
 
 ## Installation
@@ -138,6 +139,51 @@ From the CLI:
 synthetictext rag-qa --input chunk.txt --num-samples 5 --language English --output qa.csv
 ```
 
+## Templated Generation
+
+Generate new text on a different topic while preserving the source text's style, tone, structure, and approximate length:
+
+```python
+from synthetictext import TemplatedGenerator
+
+source_text = "EV adoption is accelerating as battery costs fall and charging networks expand."
+
+templated = TemplatedGenerator(llm_provider="openai", llm_model="gpt-4o-mini")
+
+text = templated.generate_one(
+    text=source_text,
+    source_topic="electric vehicles",
+    target_topic="urban gardening",
+    style="brief analytical market update",
+    language="English",
+)
+
+df = templated.generate(
+    text=source_text,
+    source_topic="electric vehicles",
+    target_topic="urban gardening",
+    style="brief analytical market update",
+    num_samples=5,
+    language="English",
+)
+
+print(text)
+print(df.head())
+# Columns: id, text, source, metadata
+```
+
+From the CLI:
+
+```bash
+synthetictext templated \
+    --input source.txt \
+    --source-topic "electric vehicles" \
+    --target-topic "urban gardening" \
+    --style "brief analytical market update" \
+    --num-samples 5 \
+    --output templated.csv
+```
+
 ## Generation Strategies
 
 | Strategy | Description | Requires |
@@ -198,6 +244,13 @@ synthetictext generate --config task.json -l en -n 1000 \
 
 # Filter existing synthetic data
 synthetictext filter --config task.json --input synthetic.csv --output filtered.csv
+
+# Generate templated style-transfer text
+synthetictext templated --input source.txt \
+    --source-topic "electric vehicles" \
+    --target-topic "urban gardening" \
+    --style "brief analytical market update" \
+    --num-samples 5 --output templated.csv
 ```
 
 ### Task Config File (JSON)
@@ -242,6 +295,7 @@ Step-by-step Jupyter notebooks in [`tutorials/`](tutorials/):
 2. **[Quality Filtering](tutorials/02_quality_filtering.ipynb)** -- using built-in filters, building custom filter pipelines
 3. **[Multilingual Generation](tutorials/03_multilingual_generation.ipynb)** -- `LanguageConfig`, backtranslation, pivot translation, tier-based strategies
 4. **[RAG Q&A Generation](tutorials/04_rag_qa_generation.ipynb)** -- generating grounded question-answer pairs from source chunks
+5. **[Templated Generation](tutorials/05_templated_generation.ipynb)** -- transferring a source text's style to a new topic
 
 ## Examples
 

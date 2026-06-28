@@ -15,6 +15,7 @@ class CapturingLLMProvider(MockLLMProvider):
     def __init__(self, responses: list[str] | None = None) -> None:
         super().__init__(responses)
         self.response_formats = []
+        self.max_tokens_values = []
 
     def generate(
         self,
@@ -27,6 +28,7 @@ class CapturingLLMProvider(MockLLMProvider):
         response_format=None,
     ) -> str:
         self.response_formats.append(response_format)
+        self.max_tokens_values.append(max_tokens)
         return super().generate(
             prompt,
             model=model,
@@ -84,6 +86,7 @@ class TestRAGQAGenerator:
         gen.generate(chunk="A chunk with one answer.", num_samples=1)
 
         assert llm.response_formats == [{"type": "json_object"}]
+        assert llm.max_tokens_values == [4000]
 
     def test_falls_back_for_legacy_provider_without_response_format(self) -> None:
         gen = RAGQAGenerator(llm_provider=LegacyLLMProvider())  # type: ignore[arg-type]

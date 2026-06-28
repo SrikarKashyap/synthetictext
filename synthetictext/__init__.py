@@ -4,6 +4,7 @@ Quick start::
 
     from synthetictext import TaskSpec, SyntheticDataGenerator
     from synthetictext import RAGQAGenerator
+    from synthetictext import TemplatedGenerator
 
     task = TaskSpec(
         name="Sentiment Analysis",
@@ -21,12 +22,14 @@ from synthetictext.pipeline import SyntheticDataGenerator
 from synthetictext.providers.base import BaseLLMProvider, BaseTranslationProvider
 from synthetictext.qa import RAGQAGenerator
 from synthetictext.task import LanguageConfig, TaskSpec
+from synthetictext.templated import TemplatedGenerator
 
 __all__ = [
     "TaskSpec",
     "LanguageConfig",
     "SyntheticDataGenerator",
     "RAGQAGenerator",
+    "TemplatedGenerator",
     "BaseLLMProvider",
     "BaseTranslationProvider",
     "__version__",

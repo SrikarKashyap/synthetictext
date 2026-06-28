@@ -129,3 +129,23 @@ class PromptRenderer:
             "num_samples": num_samples,
         }
         return template.format(**variables)
+
+    def render_templated_generation(
+        self,
+        text: str,
+        source_topic: str,
+        target_topic: str,
+        style: str,
+        num_samples: int,
+        language: str,
+    ) -> str:
+        template = self._get_template("templated_generation")
+        variables = {
+            **self._base_vars(language),
+            "text": text,
+            "source_topic": source_topic,
+            "target_topic": target_topic,
+            "style": style,
+            "num_samples": num_samples,
+        }
+        return template.format(**variables)

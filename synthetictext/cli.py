@@ -49,6 +49,13 @@ examples:
   # Generate RAG Q&A pairs from a text chunk
   synthetictext rag-qa --input chunk.txt --num-samples 5 --language English \\
       --output qa.csv
+
+  # Transfer a source text's style to a new topic
+  synthetictext templated --input source.txt \\
+      --source-topic "electric vehicles" \\
+      --target-topic "urban gardening" \\
+      --style "short technical blog intro" \\
+      --num-samples 5 --output templated.csv
 """,
     )
 
@@ -97,6 +104,18 @@ examples:
     rag_qa.add_argument("--provider", default="openai", help="LLM provider (default: openai)")
     rag_qa.add_argument("--output", "-o", default=None, help="Output CSV path")
 
+    # --- templated subcommand ---
+    templated = sub.add_parser("templated", help="Generate text in the same style on a new topic")
+    templated.add_argument("--input", "-i", required=True, help="Path to source text file")
+    templated.add_argument("--source-topic", required=True, help="Topic of the source text")
+    templated.add_argument("--target-topic", required=True, help="Topic for generated text")
+    templated.add_argument("--style", required=True, help="Style description to preserve")
+    templated.add_argument("--num-samples", "-n", type=int, default=1)
+    templated.add_argument("--language", "-l", default="English")
+    templated.add_argument("--model", "-m", default=None, help="LLM model name")
+    templated.add_argument("--provider", default="openai", help="LLM provider (default: openai)")
+    templated.add_argument("--output", "-o", default=None, help="Output CSV path")
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -109,6 +128,8 @@ examples:
         _run_filter(args)
     elif args.command == "rag-qa":
         _run_rag_qa(args)
+    elif args.command == "templated":
+        _run_templated(args)
 
 
 def _run_generate(args: argparse.Namespace) -> None:
@@ -213,6 +234,36 @@ def _run_rag_qa(args: argparse.Namespace) -> None:
     if args.output:
         save_data(df, args.output)
         print(f"Generated {len(df)} RAG Q&A samples at {args.output}")
+    else:
+        print(df.to_json(orient="records", indent=2))
+
+
+def _run_templated(args: argparse.Namespace) -> None:
+    import logging
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+    from synthetictext.templated import TemplatedGenerator
+    from synthetictext.utils import save_data
+
+    source_path = Path(args.input)
+    source_text = source_path.read_text(encoding="utf-8")
+    generator = TemplatedGenerator(
+        llm_provider=args.provider,
+        llm_model=args.model,
+    )
+    df = generator.generate(
+        text=source_text,
+        source_topic=args.source_topic,
+        target_topic=args.target_topic,
+        style=args.style,
+        num_samples=args.num_samples,
+        language=args.language,
+    )
+
+    if args.output:
+        save_data(df, args.output)
+        print(f"Generated {len(df)} templated samples at {args.output}")
     else:
         print(df.to_json(orient="records", indent=2))
 

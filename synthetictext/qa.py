@@ -48,7 +48,7 @@ class RAGQAGenerator:
         generation_kwargs = {
             "model": model,
             "temperature": self.TEMPERATURE if temperature is None else temperature,
-            "max_tokens": max_tokens or max(500, num_samples * 150),
+            "max_tokens": max_tokens or max(4000, num_samples * 500),
             "response_format": {"type": "json_object"},
         }
         try:

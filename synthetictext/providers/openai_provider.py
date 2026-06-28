@@ -59,5 +59,36 @@ class OpenAIProvider(BaseLLMProvider):
         if response_format is not None:
             kwargs["response_format"] = response_format
 
-        response = self._client.chat.completions.create(**kwargs)
+        while True:
+            try:
+                response = self._client.chat.completions.create(**kwargs)
+                break
+            except Exception as exc:
+                if self._uses_max_completion_tokens(exc, kwargs):
+                    kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+                    continue
+                if self._uses_default_temperature(exc, kwargs):
+                    kwargs.pop("temperature")
+                    continue
+                raise
         return response.choices[0].message.content.strip()
+
+    @staticmethod
+    def _uses_max_completion_tokens(exc: Exception, kwargs: dict) -> bool:
+        message = str(exc)
+        return (
+            "max_tokens" in kwargs
+            and "max_tokens" in message
+            and "max_completion_tokens" in message
+            and "unsupported" in message.lower()
+        )
+
+    @staticmethod
+    def _uses_default_temperature(exc: Exception, kwargs: dict) -> bool:
+        message = str(exc)
+        return (
+            "temperature" in kwargs
+            and "temperature" in message
+            and "default" in message.lower()
+            and "unsupported" in message.lower()
+        )
